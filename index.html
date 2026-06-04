@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NyxSile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Unbounded:wght@200;400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --void: #030508;
+    --deep: #060c14;
+    --ink: #0a1220;
+    --dim: #111c2e;
+    --mist: #1a2a42;
+    --frost: #c8d8f0;
+    --ice: #e8f0fc;
+    --star: #ffffff;
+    --accent: #5b8fff;
+    --glow: #4a7aff;
+    --pulse: #8ab4ff;
+    --warn: #ff6b6b;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--frost);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ── STARS ── */
+  .starfield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .starfield canvas { width: 100%; height: 100%; }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+    pointer-events: none;
+  }
+
+  /* ── LAYOUT ── */
+  .wrap {
+    position: relative;
+    z-index: 2;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 60px;
+  }
+
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-name {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(52px, 14vw, 96px);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: var(--star);
+    margin-bottom: 8px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.35s forwards;
+  }
+
+  .hero-name span {
+    display: block;
+    font-weight: 200;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--mist);
+    font-size: 0.6em;
+    letter-spacing: 0.05em;
+  }
+
+  .hero-sub {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-top: 24px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.5s forwards;
+  }
+
+  .hero-quote {
+    margin-top: 40px;
+    padding-left: 20px;
+    border-left: 1px solid var(--mist);
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #6a8ab0;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.65s forwards;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: fadeUp 1s 1.2s forwards;
+  }
+  .scroll-hint span {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mist);
+  }
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--mist), transparent);
+    animation: scrollPulse 2s infinite;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 56px 0 40px;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--dim); }
+  .divider-dot {
+    width: 4px; height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  /* ── INFO GRID ── */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-bottom: 2px;
+  }
+
+  .info-cell {
+    background: var(--deep);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .info-cell:hover { background: var(--ink); }
+  .info-cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--accent) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .info-cell:hover::before { opacity: 0.04; }
+
+  .info-cell.wide {
+    grid-column: 1 / -1;
+  }
+
+  .cell-key {
+    font-size: 8px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .cell-val {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--ice);
+    line-height: 1.4;
+  }
+  .cell-val.mono {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* ── INTERESTS ── */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .tag {
+    padding: 6px 14px;
+    border: 1px solid var(--mist);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--frost);
+    position: relative;
+    transition: all 0.25s;
+    cursor: default;
+  }
+  .tag:hover {
+    border-color: var(--accent);
+    color: var(--star);
+    box-shadow: 0 0 12px rgba(91, 143, 255, 0.2);
+  }
+  .tag::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -6px;
+    right: 4px;
+    font-size: 7px;
+    color: var(--accent);
+  }
+
+  /* ── LINKS ── */
+  .links-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .link-item {
+    flex: 1;
+    min-width: 100px;
+    background: var(--deep);
+    padding: 16px 20px;
+    text-decoration: none;
+    color: var(--frost);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .link-item:hover {
+    background: var(--accent);
+    color: var(--void);
+  }
+  .link-dot {
+    width: 5px;
+    height: 5px;
+    background: currentColor;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── DNI ── */
+  .dni-block {
+    background: var(--deep);
+    border-left: 2px solid var(--warn);
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .dni-block::after {
+    content: 'DNI';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--warn);
+    opacity: 0.05;
+    pointer-events: none;
+    letter-spacing: -0.02em;
+  }
+  .dni-title {
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--warn);
+    margin-bottom: 12px;
+  }
+  .dni-text {
+    font-size: 12px;
+    line-height: 1.8;
+    color: #7a8a9a;
+  }
+  .dni-warn {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #9a6a6a;
+    font-style: italic;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-name {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+  .footer-note {
+    font-size: 9px;
+    color: var(--mist);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* ── CURSOR TRAIL ── */
+  .cursor-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.1s;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  /* sections animate in on scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (max-width: 480px) {
+    .info-grid { grid-template-columns: 1fr; }
+    .info-cell.wide { grid-column: 1; }
+    .footer { flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="starfield"><canvas id="stars"></canvas></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <section class="hero" style="position:relative;">
+    <div class="hero-label">// who am i</div>
+    <h1 class="hero-name">
+      NyxSile
+      <span>Никсель</span>
+    </h1>
+    <div class="hero-sub">Арипхан · 15 · он/его · 27.08</div>
+    <p class="hero-quote">
+      Мечтал стать космонавтом —<br>
+      в итоге стал к&nbsp;смосом.
+    </p>
+    <div class="scroll-hint">
+      <span>scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <div class="divider reveal"><div class="divider-line"></div><div class="divider-dot"></div><div class="divider-line"></div></div>
+
+  <div class="section-label reveal">// данные</div>
+  <div class="info-grid reveal">
+    <div class="info-cell">
+      <div class="cell-key">возраст</div>
+      <div class="cell-val">15</div>
+    </div>
+    <div class="info-cell">
+      <div class="cell-key">день рождения</div>
+      <div class="cell-val">27.08</div>
+    </div>
+    <div class="info-cell wide">
+      <div class="cell-key">языки</div>
+      <div class="cell-val mono">Русский · Қазақша · English · にほんご</div>
+    </div>
+  </div>
+
+  <!-- INTERESTS -->
+  <div class="divider reveal"><div class="divider-line"></div><div class="divider-dot"></div><div class="divider-line"></div></div>
+
+  <div class="section-label reveal">// интересы</div>
+  <div class="tags reveal">
+    <div class="tag" data-num="01">Изучение языков</div>
+    <div class="tag" data-num="02">3D моделирование</div>
+    <div class="tag" data-num="03">Музыка</div>
+    <div class="tag" data-num="04">Космос</div>
+    <div class="tag" data-num="05">Игры</div>
+  </div>
+
+  <!-- LINKS -->
+  <div class="divider reveal"><div class="divider-line"></div><div class="divider-dot"></div><div class="divider-line"></div></div>
+
+  <div class="section-label reveal">// контакты</div>
+  <div class="links-row reveal">
+    <a class="link-item" href="https://t.me/NyxSile" target="_blank">
+      <div class="link-dot"></div>Telegram
+    </a>
+    <a class="link-item" href="#" target="_blank">
+      <div class="link-dot"></div>Discord
+    </a>
+    <a class="link-item" href="#" target="_blank">
+      <div class="link-dot"></div>YouTube
+    </a>
+    <a class="link-item" href="#" target="_blank">
+      <div class="link-dot"></div>Twitch
+    </a>
+  </div>
+
+  <!-- CHANNELS -->
+  <div class="divider reveal"><div class="divider-line"></div><div class="divider-dot"></div><div class="divider-line"></div></div>
+
+  <div class="section-label reveal">// каналы</div>
+  <div class="info-grid reveal">
+    <div class="info-cell">
+      <div class="cell-key">творчество</div>
+      <div class="cell-val mono">NyxCreator</div>
+    </div>
+    <div class="info-cell">
+      <div class="cell-key">логово</div>
+      <div class="cell-val mono">NyxSile's Hideout</div>
+    </div>
+    <div class="info-cell wide">
+      <div class="cell-key">хаос</div>
+      <div class="cell-val mono">Hitler &amp; Co</div>
+    </div>
+  </div>
+
+  <!-- DNI -->
+  <div class="divider reveal"><div class="divider-line"></div><div class="divider-dot"></div><div class="divider-line"></div></div>
+
+  <div class="dni-block reveal">
+    <div class="dni-title">Do Not Interact</div>
+    <div class="dni-text">
+      Basic · неадекваты думающие что я пропагандирую фашизм/нацизм · спамеры
+    </div>
+    <div class="dni-warn">
+      Уважай границы — найдём общий язык.<br>
+      Нет — ну, хуй знает как оно выйдет.
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer reveal">
+    <div class="footer-name">NyxSile</div>
+    <div class="footer-note">мечтал стать космонавтом</div>
+  </div>
+
+</div>
+
+<script>
+// ── STARS ──
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initStars() {
+  stars = [];
+  const count = Math.floor((canvas.width * canvas.height) / 4000);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2,
+      a: Math.random(),
+      speed: Math.random() * 0.003 + 0.001,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function drawStars(t) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 216, 240, ${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+
+resize();
+initStars();
+requestAnimationFrame(drawStars);
+window.addEventListener('resize', () => { resize(); initStars(); });
+
+// ── CURSOR ──
+const dot = document.getElementById('cursorDot');
+let mx = 0, my = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  dot.style.opacity = '1';
+  dot.style.left = mx - 2 + 'px';
+  dot.style.top = my - 2 + 'px';
+});
+document.addEventListener('mouseleave', () => { dot.style.opacity = '0'; });
+
+// ── SCROLL REVEAL ──
+const reveals = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+reveals.forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
